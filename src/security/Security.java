@@ -7,13 +7,15 @@ public class Security {
 
     
     public static void main(String[] args) {
-        Scanner in=new Scanner(System.in);
-        String plainText=in.next();
-        in.nextLine();
-        String keyHex=in.next();
-        in.nextLine();
-        int n=in.nextInt();
         
+//        Scanner in=new Scanner(System.in);
+//        String keyHex=in.next();
+//        String plainText=in.next();
+//        int n=in.nextInt();
+        
+        String keyHex="0000000000000000";
+        String plainText="FFFFFFFFFFFFFFFF";
+        int n=1;
         
         String[] roundKeys=new String[16];
         roundKeys=keyGeneration(keyHex);
@@ -36,17 +38,14 @@ public class Security {
             System.out.println(cipher);
             plainText=cipher;
         }
-        
-        
-
     }
+    
+    
     private static String DESRound(String roundText, String roundKey)
     {
-        String right=new String(), left=new String(); 
-        for ( int i=0;i<32;i++)
-            {left+=roundText.charAt(i);}
-        for ( int i=32;i<64;i++)
-            {right+=roundText.charAt(i);}
+        String right=roundText.substring(0, 8);
+        String left=roundText.substring(8, 16); 
+
         
         String expansionOutput=expansionPermutation(right);   
         
@@ -59,10 +58,12 @@ public class Security {
         
         bi1=new BigInteger(straightPermutationOutput,16);
         bi2=new BigInteger(left,16);
-        xorOutputHex=bi1.xor(bi2).toString();
-        
-        String roundOutput=right.concat(xorOutputHex);
-        return roundOutput;
+        xorOutputHex=bi1.xor(bi2).toString(16);
+
+        String roundOutput=concatLeftAndRight(right,xorOutputHex);
+
+        System.out.println(roundOutput.toUpperCase());
+        return roundOutput.toUpperCase();
     }
     
     private static String expansionPermutation(String inputHex){
@@ -251,16 +252,15 @@ public class Security {
         for(int i=0;i<16 ; i++)
         {
             shiftOutput=shift(shiftInput,i);
-            shiftInput=shiftOutput;
             roundKeys[i]=pemutationChoice2(shiftOutput);
-        }
-                
+            shiftInput=shiftOutput;
+        }     
         return roundKeys;
     }
 
-    private static String permutationChoice1(String keyHex) 
+private static String permutationChoice1(String keyHex) 
     {
-        int [] P ={ 57, 49, 41, 33, 25, 17, 9, 1, 58, 50, 42, 34, 26, 18,
+        int [] pc1 ={ 57, 49, 41, 33, 25, 17, 9, 1, 58, 50, 42, 34, 26, 18,
                     10, 2, 59, 51, 43, 35, 27, 19, 11, 3, 60, 52, 44, 36,
                     63, 55, 47, 39, 31, 23, 15, 7, 62, 54, 46, 38, 30, 22,
                     14, 6, 61, 53, 45, 37, 29, 21, 13, 5, 28, 20, 12, 4 };
@@ -271,8 +271,8 @@ public class Security {
 
         //takes Hex representation of a 32-bit number in a string
         //and returns its binary representation in another string
-        actualInputBinary=new BigInteger(keyHex,16).toString(2);
         
+        actualInputBinary=new BigInteger(keyHex,16).toString(2);
         if(actualInputBinary.length()<64) // this means leading zeros eliminated
         {
                 String d=new String();
@@ -283,9 +283,9 @@ public class Security {
                 actualInputBinary=d;
         }
 
-        for(int i=0;i<P.length;i++)
+        for(int i=0;i<pc1.length;i++)
         {
-                indexInInput=P[i]-1;
+                indexInInput=pc1[i]-1;
                 outputBinary+=actualInputBinary.charAt(indexInInput);
         }
         //takes string representation of a binary number
@@ -294,9 +294,46 @@ public class Security {
         return outputHex.toUpperCase();
     }
 
+    private static String shift(String shiftInput, int roundno)
+    {
+        String shiftOutput=new String();
+        int[] shift= {1,1,2,2,2,2,2,2,1,2,2,2,2,2,2,1} ;
+        int shiftValue=shift[roundno];
+        
+        String actualInputBinary;
+        String outputBinary =new String();
+        
+        //takes Hex representation of a 32-bit number in a string
+        //and returns its binary representation in another string
+        actualInputBinary=new BigInteger(shiftInput,16).toString(2);
+        
+        if(actualInputBinary.length()<56) // this means leading zeros eliminated
+        {
+                String d=new String();
+                int dif=56-actualInputBinary.length();
+                for(int i=0;i<dif;i++)
+                        d+='0';
+                d+=actualInputBinary;
+                actualInputBinary=d;
+        }
+
+        for(int j=0;j<56;j++)
+        {
+            if(j<28)
+                outputBinary+=actualInputBinary.charAt((j+shiftValue)%28);
+            else
+                outputBinary+=actualInputBinary.charAt((j+shiftValue)%28+28);
+        }
+        //takes string representation of a binary number
+        //and returns string representation of its hexadecimal value
+        shiftOutput=new BigInteger(outputBinary,2).toString(16);
+        
+        return shiftOutput.toUpperCase();
+    }
+    
     private static String pemutationChoice2(String shiftOutput) 
     {
-        int [] P ={ 14, 17, 11, 24, 1, 5, 3, 28, 15, 6, 21, 10,
+        int [] pc2 ={ 14, 17, 11, 24, 1, 5, 3, 28, 15, 6, 21, 10,
                     23, 19, 12, 4, 26, 8, 16, 7, 27, 20, 13, 2, 
                     41, 52, 31, 37, 47, 55, 30, 40, 51, 45, 33, 
                     48, 44, 49, 39, 56, 34, 53, 46, 42, 50, 36, 29, 32 };
@@ -320,9 +357,9 @@ public class Security {
                 actualInputBinary=d;
         }
 
-        for(int i=0;i<P.length;i++)
+        for(int i=0;i<pc2.length;i++)
         {
-                indexInInput=P[i]-1;
+                indexInInput=pc2[i]-1;
                 outputBinary+=actualInputBinary.charAt(indexInInput);
         }
         //takes string representation of a binary number
@@ -332,41 +369,7 @@ public class Security {
         
     }
 
-    private static String shift(String shiftInput, int shiftValue)
-    {
-        String shiftOutput=new String();
-        int[] shift= {1,1,2,2,2,2,2,2,1,2,2,2,2,2,2,1} ;
-
-        String actualInputBinary;
-        String outputBinary =new String();
-        
-        //takes Hex representation of a 32-bit number in a string
-        //and returns its binary representation in another string
-        actualInputBinary=new BigInteger(shiftInput,16).toString(2);
-        
-        if(actualInputBinary.length()<56) // this means leading zeros eliminated
-        {
-                String d=new String();
-                int dif=56-actualInputBinary.length();
-                for(int i=0;i<dif;i++)
-                        d+='0';
-                d+=actualInputBinary;
-                actualInputBinary=d;
-        }
-
-        for(int j=0;j<shift.length;j++)
-        {
-            if(j<28)
-                outputBinary+=actualInputBinary.charAt((j+shiftValue)%28);
-            else
-                outputBinary+=actualInputBinary.charAt((j+shiftValue)%28+28);
-        }
-        //takes string representation of a binary number
-        //and returns string representation of its hexadecimal value
-        shiftOutput=new BigInteger(outputBinary,2).toString(16);
-        
-        return shiftOutput.toUpperCase();
-    }
+    
 
     // TODO: 
     private static String initialPermutation(String plainText) 
@@ -406,12 +409,23 @@ public class Security {
         //takes string representation of a binary number
         //and returns string representation of its hexadecimal value
         outputHex=new BigInteger(outputBinary,2).toString(16);
+        
+        System.out.println(outputHex.toUpperCase());
         return outputHex.toUpperCase();
     }
     
+    private static String bitSwap(String roundOutput)
+    {
+        String l=roundOutput.substring(0, 8);
+        String r=roundOutput.substring(8, 16);
+        System.out.println(r.concat(l).toUpperCase());
+        return r.concat(l).toUpperCase();
+    }
+    
+    
     private static String inverseInitialPermutation(String swapOutput)
     {
-        int [] inverseIP ={40 , 8, 48,16, 56, 24, 64, 32,
+        int [] inverseIP ={ 40 ,8, 48,16, 56, 24, 64, 32,
                             39 ,7, 47,15, 55, 23, 63, 31,
                             38 ,6, 46,14, 54, 22, 62, 30,
                             37 ,5, 45,13, 53, 21, 61, 29,
@@ -447,7 +461,25 @@ public class Security {
         //takes string representation of a binary number
         //and returns string representation of its hexadecimal value
         outputHex=new BigInteger(outputBinary,2).toString(16);
+        System.out.println(outputHex.toUpperCase());
         return outputHex.toUpperCase();
+    }
+
+    private static String concatLeftAndRight(String right, String xorOutputHex) 
+    {
+        String xorOutputBinary=new BigInteger(xorOutputHex,16).toString(2);
+        if(xorOutputBinary.length()<32) // this means leading zeros eliminated
+        {
+                String d=new String();
+                int dif=32-xorOutputBinary.length();
+                for(int i=0;i<dif;i++)
+                        d+='0';
+                d+=xorOutputBinary;
+                xorOutputBinary=d;
+        }
+        xorOutputHex= new BigInteger(xorOutputBinary,2).toString(16);
+        System.out.println(right.concat(xorOutputHex));
+        return right.concat(xorOutputHex);
     }
 
     
